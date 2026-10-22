@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="fr">
+
+<head>
+  <meta charset="utf-8" />
+  <title>MVVM – Todo-list</title>
+  <style>
+    body {
+      font-family: system-ui, sans-serif;
+      max-width: 480px;
+      margin: 40px auto;
+    }
+
+    .done {
+      text-decoration: line-through;
+      color: #888;
+    }
+
+    .error {
+      color: #c8483f;
+    }
+
+    li {
+      margin: 6px 0;
+    }
+
+    .filtres {
+      margin: 12px 0;
+    }
+
+    .filtres button.actif {
+      background: #ffd24d;
+      font-weight: bold;
+      border: 2px solid #000;
+    }
+  </style>
+</head>
+
+<body>
+  <h1>Todo-list (MVVM)</h1>
+  <form id="form">
+    <input id="titre" placeholder="Nouvelle tâche" autofocus /> <button>Ajouter</button>
+  </form>
+  <div class="filtres">
+    <button type="button" data-filtre="toutes">Toutes</button>
+    <button type="button" data-filtre="faites">Faites</button>
+    <button type="button" data-filtre="a-faire">À faire</button>
+  </div>
+  <p class="error" id="erreur"></p>
+  <ul id="liste"></ul>
+  <p id="compteur"></p>
+  <script type="module">
+    import { TodoViewModel } from './TodoViewModel.js';
+    const vm = new TodoViewModel();
+    const form = document.getElementById('form');
+    const titre = document.getElementById('titre');
+    const erreur = document.getElementById('erreur');
+    const compteur = document.getElementById('compteur');
+    const liste = document.getElementById('liste');
+    const boutons = document.querySelectorAll('[data-filtre]');
+    // commandes : la vue transmet les actions
+    form.onsubmit = e => {
+      e.preventDefault();
+      vm.ajouter(titre.value);
+      titre.value = '';
+    };
+    boutons.forEach(b => {
+      b.onclick = () => vm.changerFiltre(b.dataset.filtre);
+    });
+    // liaisons : la vue suit l'état du ViewModel
+    vm.erreur.subscribe(msg => (erreur.textContent = msg));
+    vm.restantes.subscribe(n => (compteur.textContent = `${n} tâche(s) à faire`));
+    vm.filtre.subscribe(nom => {
+      boutons.forEach(b => b.classList.toggle('actif', b.dataset.filtre === nom));
+    });
+    vm.visibles.subscribe(todos => {
+      liste.innerHTML = '';
+      for (const t of todos) {
+        const li = document.createElement('li');
+        li.innerHTML = `<label><input type="checkbox" ${t.done ? 'checked' : ''}>
+ <span class="${t.done ? 'done' : ''}"></span></label> <button>✕</button>`;
+        li.querySelector('span').textContent = t.title; // pas d'injection HTML
+        li.querySelector('input').onchange = () => vm.basculer(t.id);
+        li.querySelector('button').onclick = () => vm.supprimer(t.id);
+        liste.append(li);
+      }
+    });
+  </script>
+</body>
+
+</html>
